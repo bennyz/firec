@@ -15,6 +15,7 @@ pub struct Jailer<'j> {
     jailer_binary: Cow<'j, Path>,
     chroot_base_dir: Cow<'j, Path>,
     workspace_dir: Cow<'j, Path>,
+    cgroup_version: CgroupVersion,
     pub(crate) mode: JailerMode<'j>,
     // TODO: We need an equivalent of ChrootStrategy.
 }
@@ -59,6 +60,10 @@ impl<'j> Jailer<'j> {
     pub fn workspace_dir(&self) -> &Path {
         &self.workspace_dir
     }
+
+    pub fn cgroup_version(&self) -> &CgroupVersion {
+        &self.cgroup_version
+    }
 }
 
 /// The mode of the jailer process.
@@ -75,6 +80,14 @@ pub enum JailerMode<'j> {
     /// If the session name is not provided, `<VM_ID>` is used as the session name. tmux will be
     /// launched in detached mode.
     Tmux(Option<Cow<'j, str>>),
+}
+
+#[derive(Derivative)]
+#[derivative(Debug, Default)]
+pub enum CgroupVersion {
+    #[derivative(Default)]
+    V1,
+    V2,
 }
 
 /// The standard IO handlers.
@@ -109,6 +122,7 @@ impl<'j> JailerBuilder<'j> {
                 chroot_base_dir: Path::new("/srv/jailer").into(),
                 workspace_dir: Path::new("/srv/jailer/firecracker/root").into(),
                 mode: JailerMode::default(),
+                cgroup_version: CgroupVersion::default(),
             },
         }
     }
@@ -173,6 +187,12 @@ impl<'j> JailerBuilder<'j> {
     /// The mode of the jailer process.
     pub fn mode(mut self, mode: JailerMode<'j>) -> Self {
         self.jailer.mode = mode;
+        self
+    }
+
+    /// The version of the cgroup to use. (Default: V1)
+    pub fn cgroup_version(mut self, cgroup_version: CgroupVersion) -> Self {
+        self.jailer.cgroup_version = cgroup_version;
         self
     }
 

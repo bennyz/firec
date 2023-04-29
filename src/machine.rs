@@ -3,7 +3,7 @@
 use std::{io::ErrorKind, path::Path, process::Stdio, time::Duration};
 
 use crate::{
-    config::{Config, JailerMode},
+    config::{CgroupVersion, Config, JailerMode},
     Error,
 };
 use futures_util::TryFutureExt;
@@ -213,6 +213,12 @@ impl<'m> Machine<'m> {
         if let Some(daemonize_arg) = daemonize_arg {
             cmd.arg(daemonize_arg);
         }
+
+        let cgroup_version = match jailer.cgroup_version() {
+            CgroupVersion::V1 => 1,
+            CgroupVersion::V2 => 2,
+        };
+
         let cmd = cmd
             .args([
                 "--id",
@@ -228,6 +234,8 @@ impl<'m> Machine<'m> {
                     .chroot_base_dir()
                     .to_str()
                     .ok_or(Error::InvalidChrootBasePath)?,
+                "--cgroup-version",
+                &cgroup_version.to_string(),
                 // `firecracker` binary args.
                 "--",
                 "--api-sock",
